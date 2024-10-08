@@ -17,3 +17,9 @@
 
 # Package websites
 https://github.com/coletdjnz/yt-dlp-youtube-oauth2
+
+
+
+# Random notes
+- this is wrong but may as well continue
+  - `sudo rsync -ah --progress \\192.168.7.243\\nas\\dwiebold\\jomez_videos/ /media/nas/dwiebold/jomez_videos/`
