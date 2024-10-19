@@ -1,3 +1,4 @@
+
 ## yt-dlp
 - .\yt-dlp.exe  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/watch?v=CS6CPh-KbtI"
 - yt-dlp  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
@@ -23,3 +24,14 @@ https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 # Random notes
 - this is wrong but may as well continue
   - `sudo rsync -ah --progress \\192.168.7.243\\nas\\dwiebold\\jomez_videos/ /media/nas/dwiebold/jomez_videos/`
+
+
+# sapiens_lite install
+- instructions here
+  - https://github.com/facebookresearch/sapiens/blob/main/lite/README.md
+- grab checkpoint not specified in readme
+  - https://huggingface.co/facebook/sapiens-pose-bbox-detector
+- Because pytorch12.1 is used we need same version of cuda. Install it in conda to keep compatibility similar to venv
+- `conda install nvidia/label/cuda-12.1.0::cuda-toolkit`
+- mmcv can take a long time to install. mmcv-lite for non cuda
+  - Maybe not needed `pip install mmcv`
