@@ -20,12 +20,6 @@
 https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 
 
-
-# Random notes
-- this is wrong but may as well continue
-  - `sudo rsync -ah --progress \\192.168.7.243\\nas\\dwiebold\\jomez_videos/ /media/nas/dwiebold/jomez_videos/`
-
-
 # sapiens_lite install
 - instructions here
   - https://github.com/facebookresearch/sapiens/blob/main/lite/README.md
@@ -35,3 +29,13 @@ https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 - `conda install nvidia/label/cuda-12.1.0::cuda-toolkit`
 - mmcv can take a long time to install. mmcv-lite for non cuda
   - Maybe not needed `pip install mmcv`
+
+
+### Checkpoints
+- download the required checkpoints depth, pose, and  detector
+- Check the corresponding demo torchscript file for the MODEL line containing the file structure.
+  - example `sapiens_lite_host/torchscript/depth/checkpoints/sapiens_0.3b/sapiens_0.3b_render_people_epoch_100_torchscript.pt2`
+
+### What needs what
+- pose can be ran without det but the results suffer
+- depth requires seg

@@ -39,7 +39,7 @@ def create_pose_land_marker():
 
 
 
-IMAGE_FILE = "videos/hemburg_1.mp4"
+IMAGE_FILE = "videos/heimburg_1.mp4"
 input_video = cv2.VideoCapture(IMAGE_FILE)
 video_fps = input_video.get(cv2.CAP_PROP_FPS) # CAP_PROP_FPS = 5
 print(video_fps)
