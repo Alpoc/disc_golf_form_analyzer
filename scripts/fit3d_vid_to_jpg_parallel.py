@@ -52,3 +52,4 @@ if __name__ == "__main__":
     sessions = ["s04", "s05", "s07", "s08", "s09", "s10", "s11"]
     pool = multiprocessing.Pool()
     pool.map(loop_through_cameras, sessions)
+    print("Finished processing images")

@@ -22,11 +22,8 @@ def convert_vid_to_jpg(video_path, out_path):
 
     print("output images saved to ", out_path)
 
-# sessions = ["s03", "s04", "s05", "s07", "s08", "s09", "s10", "s11"]
-sessions = ["s03"]
+sessions = ["s03", "s04", "s05", "s07", "s08", "s09", "s10", "s11"]
 cameras = ["50591643", "58860488", "60457274", "65906101"]
-pool = multiprocessing.Pool()
-
 
 for session in sessions:
     for camera in cameras:
