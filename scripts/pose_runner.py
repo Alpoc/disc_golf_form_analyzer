@@ -6,9 +6,10 @@ def set_pictures_dir(input_path, output_path, seg_path=None):
     """
     Overwrites the Input and Output lines in the bash script
     """
+    bash_script = script_file
     if seg_path:
-        script_file = depth_script
-    with open(script_file) as f:
+        bash_script = depth_script
+    with open(bash_script) as f:
         lines = f.readlines()
         input_line = 0
         for line_number, line in enumerate(lines):
@@ -21,11 +22,50 @@ def set_pictures_dir(input_path, output_path, seg_path=None):
             if seg_path:
                 lines[input_line + 2] = f'SEG_DIR="{seg_path}"\n'
 
-    print(f"overwriting {script_file}")
-    print(f"seg path: {seg_path}")
     with open(script_file, 'w') as f:
         f.writelines(lines)
 
+
+def check_for_previous_run(picture_dir, task_dir):
+    """
+    pictures: list of picture names
+    task_dir: output dir from previous runs
+    """
+    existing_path = None
+    # Descend through and use the best data.
+    for model_size in ["sapiens_1b", "sapiens_0.6b", "sapiens_0.3b"]:
+        if os.path.exists(os.path.join(task_dir, model_size)):
+            existing_path = os.path.join(task_dir, model_size)
+        if existing_path:
+            # Sapiens outputs the annotated images with the same name as input. probably
+            last_picture = os.listdir(picture_dir)
+            last_picture.sort()
+            last_picture = last_picture[-1]
+            existing_outputs = os.listdir(existing_path)
+            if last_picture in existing_outputs:
+                return existing_path
+
+    return None
+
+
+def run_depth(picture_dir, seg_dir, depth_dir):
+    """
+    picture_dir: path to input pictures
+    seg_dir: path to possibly empty seg dir
+    depth_dir: depth dir containing or not containing depth
+    """
+    existing_depth = check_for_previous_run(picture_dir, depth_dir)
+    if existing_depth:
+        print(f"Already processed depth for {depth_dir}")
+    else:
+        existing_seg = check_for_previous_run(picture_dir, seg_dir)
+        if not existing_seg:
+            set_pictures_dir(picture_dir, seg_dir)
+            subprocess.call(script_file)
+            # Hacky way to get seg dir plus model folder
+            existing_seg = check_for_previous_run(picture_dir, seg_dir)
+        set_pictures_dir(picture_dir, depth_dir, existing_seg)
+        subprocess.call(script_file)
 
 def process_pictures():
     """
@@ -39,7 +79,6 @@ def process_pictures():
 
     for session in sessions:
         for camera in cameras:
-            # train_dir = "/home/dj/Documents/disc_golf_form_analyzer/fit3d/fit3d_train/train/"
             train_dir = fit_3d_dir
             camera_path = os.path.join(train_dir, session, "pictures", camera)
             video_names = os.listdir(camera_path)
@@ -49,13 +88,18 @@ def process_pictures():
                     run_type = "pose"
                 else:
                     run_type = "seg"
+                # fit3d/03/seg or  fit3d/03/pose
                 task_dir = os.path.join(train_dir, session, run_type)
+                # fit3d/03/depth
                 depth_dir = os.path.join(train_dir, session, "depth")
-
+                # fit3d/03/seg/50591634
                 camera_dir = os.path.join(task_dir, camera)
+                # fit3d/03/depth/50591634
                 depth_camera_dir = os.path.join(depth_dir, camera)
 
+                # fit3d/03/seg/50591634/deadlift, or pose...
                 out_path = os.path.join(camera_dir, video_name)
+                # fit3d/03/depth/50591634/deadlift
                 depth_output_dir = os.path.join(depth_camera_dir, video_name)
 
 
@@ -73,28 +117,17 @@ def process_pictures():
                     os.makedirs(depth_output_dir)
 
 
-                input_dir = os.path.join(camera_path, video_name)
+                input_pictures_dir = os.path.join(camera_path, video_name)
 
-                existing_output = None
-                if os.path.exists(os.path.join(out_path, "sapiens_1b")):
-                    existing_output = os.path.join(out_path, "sapiens_1b")
-                elif os.path.exists(os.path.join(out_path, "sapiens_0.6b")):
-                    existing_output = os.path.join(out_path, "sapiens_0.6b")
-
-                if existing_output:
-                    output_files = os.listdir(existing_output)
-                    frames = os.listdir(input_dir)
-                    # pose will have an image and a pose file, seg with have image plus two seg files
-                    if len(output_files) == (len(frames) * 2) or len(output_files) == (len(frames) * 3):
+                if not pose:
+                    run_depth(input_pictures_dir, out_path, depth_output_dir)
+                else:
+                    if check_for_previous_run(input_pictures_dir, out_path):
                         print(f"{session}/{camera}/{video_name} already processed")
-                        if not pose:
-                            print("running depth")
-                            set_pictures_dir(input_dir, depth_output_dir, existing_output)
-                            subprocess.call(depth_script)
                         continue
-
-                # set_pictures_dir(input_dir, out_path)
-                # subprocess.call(script_file)
+                    else:
+                        set_pictures_dir(input_pictures_dir, out_path)
+                        subprocess.call(script_file)
 
                 print(f"Processed {i}/{len(video_names)} videos")
 

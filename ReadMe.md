@@ -1,24 +1,9 @@
-
-## yt-dlp
-- .\yt-dlp.exe  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/watch?v=CS6CPh-KbtI"
-- yt-dlp  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
-- yt-dlp -w -P "\\192.168.7.243\nas\dwiebold\jomez_videos" -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
-- yt-dlp -w ----match-title "(2022|MPO)" -P "\\192.168.7.243\nas\dwiebold\jomez_videos" -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
-#### If you plan to use pycharm you'll need to download ffmpeg and manually add the exe to 
-- .venv/Scripts/ffmpeg.exe
-# wsl2 disk resize
-- `wsl --shutdown`
-- `diskpart`
-# open window Diskpart
-- `select vdisk file="C:\Users\dwieb\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu_79rhkp1fndgsc\LocalState\ext4.vhdx"`
-- `attach vdisk readonly`
-- `compact vdisk`
-- `detach vdisk`
-- `exit`
-
-# Package websites
-https://github.com/coletdjnz/yt-dlp-youtube-oauth2
-
+# fit3d
+- fit3d needs to be downloaded and placed in the top level.
+- you'll need an account to download it
+- in order to run inference to generate the dataset move `pose_runner.py` and `depth_runner.py` to
+  - `/sapiens/lite/scripts/demo/torchscript`
+    - Future work will hopefully be removing this step and have it call the scripts directly.
 
 # sapiens_lite install
 - instructions here
@@ -39,3 +24,25 @@ https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 ### What needs what
 - pose can be ran without det but the results suffer
 - depth requires seg
+
+
+
+## yt-dlp
+- .\yt-dlp.exe  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/watch?v=CS6CPh-KbtI"
+- yt-dlp  -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
+- yt-dlp -w -P "\\192.168.7.243\nas\dwiebold\jomez_videos" -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
+- yt-dlp -w ----match-title "(2022|MPO)" -P "\\192.168.7.243\nas\dwiebold\jomez_videos" -f 'bestvideo+bestaudio' --merge-output-format mkv "https://www.youtube.com/@JomezPro"
+#### If you plan to use pycharm you'll need to download ffmpeg and manually add the exe to 
+- .venv/Scripts/ffmpeg.exe
+# wsl2 disk resize
+- `wsl --shutdown`
+- `diskpart`
+# open window Diskpart
+- `select vdisk file="C:\Users\dwieb\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu_79rhkp1fndgsc\LocalState\ext4.vhdx"`
+- `attach vdisk readonly`
+- `compact vdisk`
+- `detach vdisk`
+- `exit`
+
+# Package websites
+https://github.com/coletdjnz/yt-dlp-youtube-oauth2
