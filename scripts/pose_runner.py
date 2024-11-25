@@ -22,7 +22,7 @@ def set_pictures_dir(input_path, output_path, seg_path=None):
             if seg_path:
                 lines[input_line + 2] = f'SEG_DIR="{seg_path}"\n'
 
-    with open(script_file, 'w') as f:
+    with open(bash_script, 'w') as f:
         f.writelines(lines)
 
 
@@ -60,12 +60,18 @@ def run_depth(picture_dir, seg_dir, depth_dir):
     else:
         existing_seg = check_for_previous_run(picture_dir, seg_dir)
         if not existing_seg:
+            print("Running segmentation")
             set_pictures_dir(picture_dir, seg_dir)
             subprocess.call(script_file)
             # Hacky way to get seg dir plus model folder
             existing_seg = check_for_previous_run(picture_dir, seg_dir)
-        set_pictures_dir(picture_dir, depth_dir, existing_seg)
-        subprocess.call(script_file)
+        if existing_seg:
+            print(f"Running Depth from {existing_seg}")
+            set_pictures_dir(picture_dir, depth_dir, existing_seg)
+            subprocess.call(script_file)
+        else:
+            print(f"Could not find seg at {existing_seg}")
+    exit()
 
 def process_pictures():
     """
@@ -76,6 +82,8 @@ def process_pictures():
 
     sessions = ["s03"]
     cameras = ["50591643"]
+    sessions = ["s02"]
+    cameras = ["no_camera_angles"]
 
     for session in sessions:
         for camera in cameras:
@@ -145,6 +153,6 @@ if __name__ == "__main__":
 
     depth_script = os.path.join(script_dir, "overwrite_depth.sh")
 
-    fit_3d_dir = "/media/dj/3CB88F62B88F1992/fit3d"
+    fit_3d_dir = "/media/dj/3CB88F62B88F1992/fit3d/test"
 
     process_pictures()
