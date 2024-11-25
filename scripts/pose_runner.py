@@ -1,6 +1,6 @@
 import os
 import subprocess
-
+import glob
 
 def set_pictures_dir(input_path, output_path, seg_path=None):
     """
@@ -21,7 +21,7 @@ def set_pictures_dir(input_path, output_path, seg_path=None):
             lines[input_line + 1] = f'OUTPUT="{output_path}"\n'
             if seg_path:
                 lines[input_line + 2] = f'SEG_DIR="{seg_path}"\n'
-
+    print(f"output set to {output_path}")
     with open(bash_script, 'w') as f:
         f.writelines(lines)
 
@@ -33,17 +33,18 @@ def check_for_previous_run(picture_dir, task_dir):
     """
     existing_path = None
     # Descend through and use the best data.
+    print(f"checking for existing data at {task_dir}")
     for model_size in ["sapiens_1b", "sapiens_0.6b", "sapiens_0.3b"]:
-        if os.path.exists(os.path.join(task_dir, model_size)):
-            existing_path = os.path.join(task_dir, model_size)
-        if existing_path:
+        existing_path = os.path.join(task_dir, model_size)
+        if os.path.exists(existing_path):
             # Sapiens outputs the annotated images with the same name as input. probably
-            last_picture = os.listdir(picture_dir)
-            last_picture.sort()
-            last_picture = last_picture[-1]
-            existing_outputs = os.listdir(existing_path)
-            if last_picture in existing_outputs:
-                return existing_path
+            last_picture = glob.glob(os.path.join(existing_path, "*.jpg"))
+            if len(last_picture):
+                last_picture.sort()
+                last_picture = last_picture[-1].split("/")[-1]
+                existing_outputs = os.listdir(existing_path)
+                if last_picture in existing_outputs:
+                    return existing_path
 
     return None
 
@@ -60,18 +61,18 @@ def run_depth(picture_dir, seg_dir, depth_dir):
     else:
         existing_seg = check_for_previous_run(picture_dir, seg_dir)
         if not existing_seg:
-            print("Running segmentation")
+            print(f"Running segmentation on {seg_dir}")
             set_pictures_dir(picture_dir, seg_dir)
             subprocess.call(script_file)
             # Hacky way to get seg dir plus model folder
-            existing_seg = check_for_previous_run(picture_dir, seg_dir)
-        if existing_seg:
+            existing_depth = check_for_previous_run(picture_dir, seg_dir)
+        if not existing_depth:
             print(f"Running Depth from {existing_seg}")
             set_pictures_dir(picture_dir, depth_dir, existing_seg)
-            subprocess.call(script_file)
+            # subprocess.call(script_file)
         else:
             print(f"Could not find seg at {existing_seg}")
-    exit()
+
 
 def process_pictures():
     """
