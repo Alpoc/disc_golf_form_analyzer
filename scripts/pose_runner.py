@@ -2,6 +2,7 @@ import os
 import subprocess
 import glob
 
+
 def set_pictures_dir(input_path, output_path, seg_path=None):
     """
     Overwrites the Input and Output lines in the bash script.
@@ -65,13 +66,15 @@ def run_depth(picture_dir, seg_dir, depth_dir):
         if not existing_seg:
             print(f"Running segmentation on {seg_dir}")
             set_pictures_dir(picture_dir, seg_dir)
+            print(f"Running: {script_file}")
             subprocess.call(script_file)
             # Hacky way to get seg dir plus model folder
             existing_depth = check_for_previous_run(picture_dir, seg_dir)
         if not existing_depth:
             print(f"Running Depth from {existing_seg}")
             set_pictures_dir(picture_dir, depth_dir, existing_seg)
-            subprocess.call(script_file)
+            print(f"Running: {depth_script}")
+            subprocess.call(depth_script)
         else:
             print(f"Could not find seg at {existing_seg}")
 
