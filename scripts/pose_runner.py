@@ -4,7 +4,8 @@ import glob
 
 def set_pictures_dir(input_path, output_path, seg_path=None):
     """
-    Overwrites the Input and Output lines in the bash script
+    Overwrites the Input and Output lines in the bash script.
+    This shouldn't be done and the python file should be used directly but this was simpler to figure out.
     """
     bash_script = script_file
     if seg_path:
@@ -28,20 +29,21 @@ def set_pictures_dir(input_path, output_path, seg_path=None):
 
 def check_for_previous_run(picture_dir, task_dir):
     """
+    Takes the list picture in pictures and checks if that picture exists in the task dir.
+    Sapiens outputs an annotated picture with the same name, probably.
     pictures: list of picture names
     task_dir: output dir from previous runs
+    return: location of already existing dir if the run completed.
     """
-    existing_path = None
     # Descend through and use the best data.
     print(f"checking for existing data at {task_dir}")
     for model_size in ["sapiens_1b", "sapiens_0.6b", "sapiens_0.3b"]:
         existing_path = os.path.join(task_dir, model_size)
         if os.path.exists(existing_path):
-            # Sapiens outputs the annotated images with the same name as input. probably
-            last_picture = glob.glob(os.path.join(existing_path, "*.jpg"))
+            last_picture = os.listdir(picture_dir)
             if len(last_picture):
                 last_picture.sort()
-                last_picture = last_picture[-1].split("/")[-1]
+                last_picture = last_picture[-1]
                 existing_outputs = os.listdir(existing_path)
                 if last_picture in existing_outputs:
                     return existing_path
@@ -69,7 +71,7 @@ def run_depth(picture_dir, seg_dir, depth_dir):
         if not existing_depth:
             print(f"Running Depth from {existing_seg}")
             set_pictures_dir(picture_dir, depth_dir, existing_seg)
-            # subprocess.call(script_file)
+            subprocess.call(script_file)
         else:
             print(f"Could not find seg at {existing_seg}")
 
@@ -138,7 +140,7 @@ def process_pictures():
                         set_pictures_dir(input_pictures_dir, out_path)
                         subprocess.call(script_file)
 
-                print(f"Processed {i}/{len(video_names)} videos")
+                print(f"Processed {i + 1}/{len(video_names)} videos")
 
 
 if __name__ == "__main__":
