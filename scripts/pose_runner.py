@@ -79,17 +79,10 @@ def run_depth(picture_dir, seg_dir, depth_dir):
             print(f"Could not find seg at {existing_seg}")
 
 
-def process_pictures():
+def process_pictures(sessions, cameras):
     """
     Wrapper for running the sapiens demo scripts
     """
-    sessions = ["s03", "s04", "s05", "s07", "s08", "s09", "s10", "s11"]
-    cameras = ["50591643", "58860488", "60457274", "65906101"]
-
-    sessions = ["s03"]
-    cameras = ["50591643"]
-    sessions = ["s02"]
-    cameras = ["no_camera_angles"]
 
     for session in sessions:
         for camera in cameras:
@@ -148,17 +141,18 @@ def process_pictures():
 
 if __name__ == "__main__":
     # False == segmentation
+    # Todo: change this so everything is ran.
     pose = False
-
     script_dir = "/home/dj/sapiens/lite/scripts/demo/torchscript"
 
     if pose:
-        script_file = os.path.join("overwrite_pose_keypoints133.sh")
+        script_file = os.path.join(script_dir, "overwrite_pose_keypoints133.sh")
     else:
         script_file = os.path.join(script_dir, "overwrite_seg.sh")
 
     depth_script = os.path.join(script_dir, "overwrite_depth.sh")
 
-    fit_3d_dir = "/media/dj/3CB88F62B88F1992/fit3d/test"
-
-    process_pictures()
+    fit_3d_dir = os.path.join("/media/dj/3CB88F62B88F1992/fit3d/", "train")
+    cameras = ["50591643"]
+    sessions = ["s03"]
+    process_pictures(sessions, cameras)

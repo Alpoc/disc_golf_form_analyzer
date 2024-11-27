@@ -24,9 +24,10 @@ def convert_vid_to_jpg(video_path, out_path):
 
 
 def loop_through_cameras(session):
-    cameras = ["50591643", "58860488", "60457274", "65906101"]
+    # cameras = ["50591643", "58860488", "60457274", "65906101"]
+    cameras = ["no_camera_angles"]
     for camera in cameras:
-        train_dir = "../fit3d/fit3d_train/train/"
+        train_dir = "/media/dj/3CB88F62B88F1992/fit3d/test/"
         camera_path = os.path.join(train_dir, session, "videos", camera)
         video_names = os.listdir(camera_path)
         for video_name in video_names:
@@ -49,7 +50,8 @@ def loop_through_cameras(session):
             convert_vid_to_jpg(video_path, out_path)
 
 if __name__ == "__main__":
-    sessions = ["s04", "s05", "s07", "s08", "s09", "s10", "s11"]
+    # sessions = ["s04", "s05", "s07", "s08", "s09", "s10", "s11"]
+    sessions = ["s02", "s12", "s13"]
     pool = multiprocessing.Pool()
     pool.map(loop_through_cameras, sessions)
     print("Finished processing images")

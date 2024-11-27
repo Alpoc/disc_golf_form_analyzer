@@ -2,9 +2,8 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import (Dense, Flatten, Dropout, Conv2D, MaxPooling2D, CategoryEncoding,
                                      LSTM, ConvLSTM2D, TimeDistributed, BatchNormalization, Conv3D, Reshape, Input)
-import time
 from data_formatter import get_keypoint_data
-
+import config
 
 def gpu_check():
     """
@@ -27,7 +26,6 @@ def build_mlp(input_shape):
     """
     new_model = Sequential([
         Input(shape=input_shape),
-        Flatten(),
         Dense(512, activation='relu'),
         Dense(512, activation='relu'),
         Dense(512, activation='relu'),
@@ -51,13 +49,29 @@ def training_loop(x_train, y_train, model):
     print(model.predict(test_x))
     # print(test_x)
 
+    return model
+
+def validate_model(x_test, y_test, model):
+
+    test_loss, test_accuracy = model.validate(x_test, y_test)
+    print(f'Test accuracy: {test_accuracy * 100:.2f}%')
+
 if __name__ == "__main__":
     # gpu_check()
-    NUM_EPOCHS = 4
-    BATCH_SIZE = 64
+    NUM_EPOCHS = 16
+    BATCH_SIZE = 128
 
-    x_train, y_train = get_keypoint_data()
+    debug_videos_count = 2
+
+    x_train, y_train = get_keypoint_data(config.training_sessions, config.training_cameras,
+                                         "train", debug_videos_count)
+
+    # There is no joint3d_25 data inside of test!!!!!
+    # x_test, y_test = get_keypoint_data(config.testing_sessions, config.testing_cameras, "test", debug_videos_count)
+
     input_shape = x_train[0].shape
     print(f"input shape: {input_shape}")
     model = build_mlp(input_shape)
     training_loop(x_train, y_train, model)
+
+    # validate_model(x_test, y_test, model)
