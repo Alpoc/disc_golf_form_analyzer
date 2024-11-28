@@ -4,6 +4,8 @@ import json
 import glob
 import numpy as np
 
+import config
+
 
 def average_neighbors(array, x, y):
   """
@@ -105,15 +107,17 @@ def align_data(pose_array, joint_truth):
     return pose_array
 
 
-def get_keypoint_data():
+def get_keypoint_data(sessions, cameras, mode="train", debug_amount=0):
     """
+    sessions: list of session strings
+    cameras: list of camera numbers
+    base_path: string path to the fit3d dataset
+    debug_amount: number of video frames to process for debugging. If not included process all videos
     This formater gets the data by taking the average around each keypoint location in the depth image at the
     pose keypoint locations.
     """
 
-    base_path = "/media/dj/3CB88F62B88F1992/fit3d/"
-    sessions = ["s03"]
-    cameras = ["50591643"]
+    base_path = os.path.join(config.fit3d_base_directory, mode)
     x_combined = []
     y_hats = []
     array_check = []
@@ -125,18 +129,17 @@ def get_keypoint_data():
             camera_path = os.path.join(base_path, session, "pictures", camera)
             video_names = os.listdir(camera_path)
             for i, video_name in enumerate(video_names):
-                x, y_hat = get_data_for_pose_single_depth(base_path, session, camera, video_name)
-                x = align_data(x, y_hat)
+                x_train, y_hat = get_data_for_pose_single_depth(base_path, session, camera, video_name)
+                x_train = align_data(x_train, y_hat)
 
-                if len(x):
+                if len(x_train):
                     videos_processed += 1
 
                 try:
-                    array_check.extend(x)
-                    x = np.asarray(x)
+                    array_check.extend(x_train)
+                    x_train = np.asarray(x_train)
 
-
-                    x_combined.extend(x)
+                    x_combined.extend(x_train)
                     y_hats.extend(y_hat)
 
                     temp = np.asarray(array_check)
@@ -148,8 +151,8 @@ def get_keypoint_data():
                     print(exc)
                     continue
                 # Debugging step to load less data
-                # if videos_processed == 4:
-                #     break
+                if videos_processed == debug_amount:
+                    break
     x_combined = np.asarray(x_combined)
     y_hats = np.asarray(y_hats)
     return x_combined, y_hats

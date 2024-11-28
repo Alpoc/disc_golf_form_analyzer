@@ -1,6 +1,6 @@
 import os
 import subprocess
-import glob
+import time
 
 
 def set_pictures_dir(input_path, output_path, seg_path=None):
@@ -37,7 +37,7 @@ def check_for_previous_run(picture_dir, task_dir):
     return: location of already existing dir if the run completed.
     """
     # Descend through and use the best data.
-    print(f"checking for existing data at {task_dir}")
+    # print(f"checking for existing data at {task_dir}")
     for model_size in ["sapiens_1b", "sapiens_0.6b", "sapiens_0.3b"]:
         existing_path = os.path.join(task_dir, model_size)
         if os.path.exists(existing_path):
@@ -54,29 +54,33 @@ def check_for_previous_run(picture_dir, task_dir):
 
 def run_depth(picture_dir, seg_dir, depth_dir):
     """
+    Runs seg and depth. If depth exists it returns. If previous seg exists it uses that for depth.
     picture_dir: path to input pictures
     seg_dir: path to possibly empty seg dir
     depth_dir: depth dir containing or not containing depth
     """
+    # There is an OOM issue that occasionally occurs. Might have to do with GC not happening fast enough
+    time.sleep(1)
     existing_depth = check_for_previous_run(picture_dir, depth_dir)
     if existing_depth:
-        print(f"Already processed depth for {depth_dir}")
+        print(f"Depth already processed for {depth_dir}")
     else:
         existing_seg = check_for_previous_run(picture_dir, seg_dir)
         if not existing_seg:
             print(f"Running segmentation on {seg_dir}")
             set_pictures_dir(picture_dir, seg_dir)
-            print(f"Running: {script_file}")
             subprocess.call(script_file)
-            # Hacky way to get seg dir plus model folder
-            existing_depth = check_for_previous_run(picture_dir, seg_dir)
-        if not existing_depth:
-            print(f"Running Depth from {existing_seg}")
-            set_pictures_dir(picture_dir, depth_dir, existing_seg)
-            print(f"Running: {depth_script}")
-            subprocess.call(depth_script)
+            # Hacky way to get seg dir plus model size folder
+            # Todo: Bug here still needs to be validated that it's fixed. It was not running depth after seg.
+            existing_seg = check_for_previous_run(picture_dir, seg_dir)
+            print(f"new seg at {existing_seg}")
+            time.sleep(1)
         else:
-            print(f"Could not find seg at {existing_seg}")
+            print("Previous segmentation found")
+
+        set_pictures_dir(picture_dir, depth_dir, existing_seg)
+        print(f"Running: {depth_script}")
+        subprocess.call(depth_script)
 
 
 def process_pictures(sessions, cameras):
@@ -126,20 +130,26 @@ def process_pictures(sessions, cameras):
 
                 input_pictures_dir = os.path.join(camera_path, video_name)
 
-                if not pose:
-                    run_depth(input_pictures_dir, out_path, depth_output_dir)
+                # if not pose:
+                run_depth(input_pictures_dir, out_path, depth_output_dir)
+                # else:
+                if check_for_previous_run(input_pictures_dir, out_path):
+                    print(f"Pose already processed for {session}/{camera}/{video_name}")
+                    continue
                 else:
-                    if check_for_previous_run(input_pictures_dir, out_path):
-                        print(f"{session}/{camera}/{video_name} already processed")
-                        continue
-                    else:
-                        set_pictures_dir(input_pictures_dir, out_path)
-                        subprocess.call(script_file)
+                    print("Running pose")
+                    set_pictures_dir(input_pictures_dir, out_path)
+                    subprocess.call(script_file)
 
                 print(f"Processed {i + 1}/{len(video_names)} videos")
 
 
 if __name__ == "__main__":
+    """
+    Put this script inside of `/sapiens/lite/scripts/demo` and run it to generate seg, pose, and depth. 
+    This script does not delete the seg files. They take up a lot of space. Remove the overwrite part of the script
+    files if you're comfortable with the stock ones being overwritten. Otherwise add `overwrite_` to each script. 
+    """
     # False == segmentation
     # Todo: change this so everything is ran.
     pose = False
