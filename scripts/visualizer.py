@@ -15,7 +15,7 @@ from data_formatter import get_keypoint_data
 
 def show3Dpose(channels, ax, radius=.5, mpii=2, lcolor='#ff0000', rcolor='#0000ff'):
     """
-    Taken from fit3d code
+    Taken from fit3d code https://github.com/sminchisescu-research/imar_vision_datasets_tools/blob/main/util/dataset_util.py
     """
     vals = channels
 
@@ -55,27 +55,45 @@ def show3Dpose(channels, ax, radius=.5, mpii=2, lcolor='#ff0000', rcolor='#0000f
     return plt
     # plt.savefig("2d_truth.jpg")
 
-def plot_2d(plot_data, save_name):
+
+def plot_over_image(frame, points_2d=np.array([]), with_ids=True, with_limbs=True, path_to_write=None):
+    """
+    also taken from https://github.com/sminchisescu-research/imar_vision_datasets_tools/blob/main/util/dataset_util.py
+    """
+    num_points = points_2d.shape[0]
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.imshow(frame)
+    if points_2d.shape[0]:
+        ax.plot(points_2d[:, 0], points_2d[:, 1], 'x', markeredgewidth=10, color='white')
+        if with_ids:
+            for i in range(num_points):
+                ax.text(points_2d[i, 0], points_2d[i, 1], str(i), color='red', fontsize=20)
+        if with_limbs:
+            limbs = [[10, 9], [9, 8], [8, 11], [8, 14], [11, 12], [14, 15], [12, 13], [15, 16],
+                     [8, 7], [7, 0], [0, 1], [0, 4], [1, 2], [4, 5], [2, 3], [5, 6],
+                     [13, 21], [13, 22], [16, 23], [16, 24], [3, 17], [3, 18], [6, 19], [6, 20]]
+            for limb in limbs:
+                if limb[0] < num_points and limb[1] < num_points:
+                    ax.plot([points_2d[limb[0], 0], points_2d[limb[1], 0]],
+                            [points_2d[limb[0], 1], points_2d[limb[1], 1]],
+                            linewidth=12.0)
+
+    plt.axis('off')
+    plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                        hspace=0, wspace=0)
+    plt.margins(0, 0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator())
+    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+    if path_to_write:
+        plt.ioff()
+        plt.savefig(path_to_write, pad_inches=0, bbox_inches='tight')
+
+
+def plot_2d(plot_data):
     # joints_2d = project_3d_to_2d(plot_data, cam_params['intrinsics_wo_distortion'], 'wo_distortion')
     ax = plt.figure().add_subplot(projection='3d')
     plott = show3Dpose(plot_data, ax)
-    # plott.savefig(save_name)
-    # plott.show()
     return plott
-
-def plot_plotly(joint_data):
-    fig = go.Figure(data=[go.Scatter3d(x=joint_data[:, 0], y=joint_data[:, 1], z=joint_data[:, 2], mode='markers+lines')])
-    fig.show()
-
-def plot_3d(plot_data, save_name):
-    """
-    I dont actually work.
-    """
-    ax = plt.figure().add_subplot(projection='3d')
-
-    for joint in plot_data:
-        ax.scatter(joint[0], joint[1], joint[2])
-    plt.savefig(save_name)
 
 
 def annotate_image():
@@ -91,12 +109,13 @@ def visualize_truth():
     """
     Visualize and save to 2d_truth.jpg
     """
-    with open("/media/dj/3CB88F62B88F1992/fit3d/train/s03/joints3d_25/band_pull_apart.json") as json_file:
+    with open("/media/dj/3CB88F62B88F1992/fit3d/train/s03/joints3d_25/overhead_extension_thruster.json") as json_file:
         data = json.load(json_file)
 
-    cam_params = read_cam_params("/media/dj/3CB88F62B88F1992/fit3d/train/s03/camera_parameters/50591643/band_pull_apart.json")
     body_points = data["joints3d_25"]
-    plot_2d(np.asarray(body_points[0]), "2d_truth")
+    for i, body_point in enumerate(body_points):
+        plotty = plot_2d(np.asarray(body_point))
+        plotty.savefig("../images/truth_plots/" + str(i).zfill(4) + ".jpg")
 
 
 def visualize_from_model():
@@ -112,10 +131,11 @@ def visualize_from_model():
         keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
         key_points = keras_model.predict(single_x)[0]
         # print(key_points)
-        plotty = plot_2d(key_points, "2d_prediction.jpg")
-        plotty.savefig("../images/predictions" + str(i).zfill(4) + ".jpg")
+        plotty = plot_2d(key_points)
+        plotty.show()
+        # plotty.savefig("../images/predictions" + str(i).zfill(4) + ".jpg")
 
 
 if __name__ == "__main__":
-    # visualize_truth()
-    visualize_from_model()
+    visualize_truth()
+    # visualize_from_model()

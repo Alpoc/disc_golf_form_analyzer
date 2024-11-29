@@ -8,6 +8,7 @@ import config
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import os
+import numpy as np
 
 def gpu_check():
     """
@@ -85,17 +86,14 @@ def build_lstm(input_shape):
 
 def training_loop(x_train, y_train, model):
 
-    # with tf.device("/GPU:0"):
-    model_hist = model.fit(x_train, y_train,
-                           epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
-    test_x = x_train[0].reshape(-1, x_train[0].shape[0], x_train[0].shape[1])
+    with tf.device("/GPU:0"):
+        model_hist = model.fit(x_train, y_train,
+                               epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
+        # test_x = x_train[0].reshape(-1, x_train[0].shape[0], x_train[0].shape[1])
 
-    memory_stats = tf.config.experimental.get_memory_info("GPU:0")
-    peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
-    print(f"peak memory usage: {peak_usage} GB.")
-
-    # print(model.predict(test_x))
-    # print(test_x)
+        memory_stats = tf.config.experimental.get_memory_info("GPU:0")
+        peak_usage = round(memory_stats["peak"] / (2 ** 30), 3)
+        print(f"peak memory usage: {peak_usage} GB.")
 
     return model
 
@@ -103,6 +101,93 @@ def validate_model(x_test, y_test, model):
 
     test_loss, test_accuracy = model.evaluate(x_test, y_test)
     print(f'Test accuracy: {test_accuracy * 100:.2f}%')
+
+
+
+def calculate_mpjpe(predicted_poses, ground_truth_poses):
+    """
+    Calculates the Mean Per Joint Position Error (MPJPE) between predicted and ground truth poses.
+
+    Args:
+        predicted_poses: A numpy array of shape (N, J, 3) where N is the number of samples,
+                         J is the number of joints, and 3 is for X, Y, Z coordinates.
+        ground_truth_poses: A numpy array of the same shape as predicted_poses.
+
+    Returns:
+        The MPJPE value.
+    """
+    assert predicted_poses.shape == ground_truth_poses.shape
+
+    error = np.linalg.norm(predicted_poses - ground_truth_poses, axis=2)
+    # Todo: check if this number is better
+    error = np.mean(np.norm(predicted_poses - ground_truth_poses, dim=len(ground_truth_poses.shape) - 1))
+    mpjpe = np.mean(error)
+
+    return mpjpe
+
+
+def p_mpjpe(predicted, target):
+    """
+    Shamelessly stolen from https://github.com/facebookresearch/VideoPose3D/blob/main/common/loss.py
+    Pose error: MPJPE after rigid alignment (scale, rotation, and translation),
+    often referred to as "Protocol #2" in many papers.
+    """
+    assert predicted.shape == target.shape
+
+    muX = np.mean(target, axis=1, keepdims=True)
+    muY = np.mean(predicted, axis=1, keepdims=True)
+
+    X0 = target - muX
+    Y0 = predicted - muY
+
+    normX = np.sqrt(np.sum(X0 ** 2, axis=(1, 2), keepdims=True))
+    normY = np.sqrt(np.sum(Y0 ** 2, axis=(1, 2), keepdims=True))
+
+    X0 /= normX
+    Y0 /= normY
+
+    H = np.matmul(X0.transpose(0, 2, 1), Y0)
+    U, s, Vt = np.linalg.svd(H)
+    V = Vt.transpose(0, 2, 1)
+    R = np.matmul(V, U.transpose(0, 2, 1))
+
+    # Avoid improper rotations (reflections), i.e. rotations with det(R) = -1
+    sign_detR = np.sign(np.expand_dims(np.linalg.det(R), axis=1))
+    V[:, :, -1] *= sign_detR
+    s[:, -1] *= sign_detR.flatten()
+    R = np.matmul(V, U.transpose(0, 2, 1))  # Rotation
+
+    tr = np.expand_dims(np.sum(s, axis=1, keepdims=True), axis=2)
+
+    a = tr * normX / normY  # Scale
+    t = muX - a * np.matmul(muY, R)  # Translation
+
+    # Perform rigid transformation on the input
+    predicted_aligned = a * np.matmul(predicted, R) + t
+
+    # Return MPJPE
+    return np.mean(np.linalg.norm(predicted_aligned - target, axis=len(target.shape) - 1))
+
+
+def calculate_models_joint_error():
+    model_location = os.path.join(config.fit3d_base_directory, "mlp_model", "keras_model_dir")
+
+    x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
+                             "train", 1)
+    predictions = []
+
+    for i, x_single in enumerate(x):
+        single_x = np.asarray(x_single)
+        single_x = preprocessing.normalize(single_x)
+        single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1])
+
+        keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+        predicted_pose = keras_model.predict(single_x)[0]
+        predictions.append(predicted_pose)
+        # if i == 9:
+        #     break
+    print(calculate_mpjpe(np.asarray(predictions), y))
+
 
 def train():
     debug_videos_count = 12
@@ -136,4 +221,5 @@ if __name__ == "__main__":
     # gpu_check()
     NUM_EPOCHS = 32
     BATCH_SIZE = 128
-    train()
+    # train()
+    calculate_models_joint_error()

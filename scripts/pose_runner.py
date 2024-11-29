@@ -130,16 +130,16 @@ def process_pictures(sessions, cameras):
 
                 input_pictures_dir = os.path.join(camera_path, video_name)
 
-                # if not pose:
-                run_depth(input_pictures_dir, out_path, depth_output_dir)
-                # else:
-                if check_for_previous_run(input_pictures_dir, out_path):
-                    print(f"Pose already processed for {session}/{camera}/{video_name}")
-                    continue
+                if not pose:
+                    run_depth(input_pictures_dir, out_path, depth_output_dir)
                 else:
-                    print("Running pose")
-                    set_pictures_dir(input_pictures_dir, out_path)
-                    subprocess.call(script_file)
+                    if check_for_previous_run(input_pictures_dir, out_path):
+                        print(f"Pose already processed for {session}/{camera}/{video_name}")
+                        continue
+                    else:
+                        print("Running pose")
+                        set_pictures_dir(input_pictures_dir, out_path)
+                        subprocess.call(script_file)
 
                 print(f"Processed {i + 1}/{len(video_names)} videos")
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     This script does not delete the seg files. They take up a lot of space. Remove the overwrite part of the script
     files if you're comfortable with the stock ones being overwritten. Otherwise add `overwrite_` to each script. 
     """
-    # False == segmentation
+    # False == segmentation and depth
     # Todo: change this so everything is ran.
     pose = False
     script_dir = "/home/dj/sapiens/lite/scripts/demo/torchscript"
