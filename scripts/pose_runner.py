@@ -41,6 +41,7 @@ def check_for_previous_run(picture_dir, task_dir):
     for model_size in ["sapiens_1b", "sapiens_0.6b", "sapiens_0.3b"]:
         existing_path = os.path.join(task_dir, model_size)
         if os.path.exists(existing_path):
+            # TODO: change back to glob for when cleanup doesnt happen...
             last_picture = os.listdir(picture_dir)
             if len(last_picture):
                 last_picture.sort()
@@ -127,7 +128,6 @@ def process_pictures(sessions, cameras):
                 if not os.path.exists(depth_output_dir):
                     os.makedirs(depth_output_dir)
 
-
                 input_pictures_dir = os.path.join(camera_path, video_name)
 
                 # if not pose:
@@ -163,6 +163,6 @@ if __name__ == "__main__":
     depth_script = os.path.join(script_dir, "overwrite_depth.sh")
 
     fit_3d_dir = os.path.join("/media/dj/3CB88F62B88F1992/fit3d/", "train")
-    cameras = ["50591643"]
+    cameras = ["50591643", "60457274"]
     sessions = ["s03"]
     process_pictures(sessions, cameras)

@@ -1,13 +1,22 @@
 import cv2
 import matplotlib.pyplot as plt
 import json
-import matplotlib
 import numpy as np
 from dataset_util import read_cam_params, project_3d_to_2d, plot_over_image
 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
+import tensorflow as tf
+from sklearn import preprocessing
+import config
+import os
+
+from data_formatter import get_keypoint_data
+
 
 def show3Dpose(channels, ax, radius=.5, mpii=2, lcolor='#ff0000', rcolor='#0000ff'):
+    """
+    Taken from fit3d code
+    """
     vals = channels
 
     if mpii == 0: # h36m with mpii joints
@@ -43,24 +52,30 @@ def show3Dpose(channels, ax, radius=.5, mpii=2, lcolor='#ff0000', rcolor='#0000f
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-    plt.savefig("2d.jpg")
+    return plt
+    # plt.savefig("2d_truth.jpg")
 
-def plot_2d(plot_data):
+def plot_2d(plot_data, save_name):
     # joints_2d = project_3d_to_2d(plot_data, cam_params['intrinsics_wo_distortion'], 'wo_distortion')
     ax = plt.figure().add_subplot(projection='3d')
-    show3Dpose(plot_data, ax)
-
+    plott = show3Dpose(plot_data, ax)
+    # plott.savefig(save_name)
+    # plott.show()
+    return plott
 
 def plot_plotly(joint_data):
     fig = go.Figure(data=[go.Scatter3d(x=joint_data[:, 0], y=joint_data[:, 1], z=joint_data[:, 2], mode='markers+lines')])
     fig.show()
 
-def plot_3d(plot_data):
+def plot_3d(plot_data, save_name):
+    """
+    I dont actually work.
+    """
     ax = plt.figure().add_subplot(projection='3d')
 
     for joint in plot_data:
         ax.scatter(joint[0], joint[1], joint[2])
-    plt.savefig("plot.png")
+    plt.savefig(save_name)
 
 
 def annotate_image():
@@ -72,16 +87,35 @@ def annotate_image():
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def visualize_truth():
+    """
+    Visualize and save to 2d_truth.jpg
+    """
+    with open("/media/dj/3CB88F62B88F1992/fit3d/train/s03/joints3d_25/band_pull_apart.json") as json_file:
+        data = json.load(json_file)
 
-with open("/media/dj/3CB88F62B88F1992/fit3d/s03/joints3d_25/band_pull_apart.json") as json_file:
-    data = json.load(json_file)
-
-cam_params = read_cam_params("/media/dj/3CB88F62B88F1992/fit3d/s03/camera_parameters/50591643/band_pull_apart.json")
-
+    cam_params = read_cam_params("/media/dj/3CB88F62B88F1992/fit3d/train/s03/camera_parameters/50591643/band_pull_apart.json")
+    body_points = data["joints3d_25"]
+    plot_2d(np.asarray(body_points[0]), "2d_truth")
 
 
-body_points = data["joints3d_25"]
-print(body_points[0])
-# plot_3d(body_points[0])
-plot_2d(np.asarray(body_points[0]))
-# plot_plotly(np.asarray(body_points[0]))
+def visualize_from_model():
+    model_location = os.path.join(config.fit3d_base_directory, "mlp_model", "keras_model_dir")
+
+    x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
+                             "train", 1)
+    for i, x_single in enumerate(x):
+        single_x = np.asarray(x_single)
+        single_x = preprocessing.normalize(single_x)
+        single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1])
+
+        keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+        key_points = keras_model.predict(single_x)[0]
+        # print(key_points)
+        plotty = plot_2d(key_points, "2d_prediction.jpg")
+        plotty.savefig("../images/predictions" + str(i).zfill(4) + ".jpg")
+
+
+if __name__ == "__main__":
+    # visualize_truth()
+    visualize_from_model()

@@ -3,7 +3,7 @@ import os
 import json
 import glob
 import numpy as np
-
+import math
 import config
 
 
@@ -30,7 +30,10 @@ def average_neighbors(array, x, y):
   neighborhood = array[min_x:max_x+1, min_y:max_y+1]
 
   # Calculate the average, excluding any invalid values (e.g., points outside the array)
-  return np.nanmean(neighborhood)
+  mean_neighbor = np.nanmean(neighborhood)
+  if math.isnan(mean_neighbor):
+      return 0
+  return mean_neighbor
 
 
 def get_data_for_pose_single_depth(base_path, session_number, camera, video_name):
@@ -66,13 +69,12 @@ def get_data_for_pose_single_depth(base_path, session_number, camera, video_name
          return [], []
     for i, numpy_file in enumerate(numpy_files):
         depth_frame = np.load(numpy_file)
-        for keypoint in poses[i]:
+        for j, keypoint in enumerate(poses[i]):
             x = keypoint[0]
             y = keypoint[1]
             depth_at_keypoint_location = average_neighbors(depth_frame, x, y)
-            # keypoint.append(depth_at_keypoint_location)
-            # normalize data
-            # keypoint = [x / 1000, y / 1000, depth_at_keypoint_location]
+            poses[i][j].append(depth_at_keypoint_location)
+
     # check to see if the data is corrupt?
     try:
         if len(poses) and len(joint_3d_truth_data):
@@ -159,6 +161,7 @@ def get_keypoint_data(sessions, cameras, mode="train", debug_amount=0):
 
 
 if __name__ == '__main__':
-    x, y = get_keypoint_data()
+    x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
+                             "train",)
     x = align_data(x, y)
     print("loaded data")
