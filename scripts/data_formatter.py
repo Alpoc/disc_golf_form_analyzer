@@ -109,7 +109,7 @@ def align_data(pose_array, joint_truth):
     return pose_array
 
 
-def get_keypoint_data(sessions, cameras, mode="train", debug_amount=0):
+def get_keypoint_data(sessions, cameras, mode="train", debug_amount=0, name_list=None):
     """
     sessions: list of session strings
     cameras: list of camera numbers
@@ -125,12 +125,14 @@ def get_keypoint_data(sessions, cameras, mode="train", debug_amount=0):
     array_check = []
     videos_processed = 0
 
-
     for session in sessions:
         for camera in cameras:
             camera_path = os.path.join(base_path, session, "pictures", camera)
             video_names = os.listdir(camera_path)
             for i, video_name in enumerate(video_names):
+                if name_list and video_name not in name_list:
+                    # grab only specific video names
+                    continue
                 x_train, y_hat = get_data_for_pose_single_depth(base_path, session, camera, video_name)
                 x_train = align_data(x_train, y_hat)
 

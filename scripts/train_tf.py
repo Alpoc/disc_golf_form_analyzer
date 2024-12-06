@@ -120,7 +120,7 @@ def calculate_mpjpe(predicted_poses, ground_truth_poses):
 
     error = np.linalg.norm(predicted_poses - ground_truth_poses, axis=2)
     # Todo: check if this number is better
-    error = np.mean(np.norm(predicted_poses - ground_truth_poses, dim=len(ground_truth_poses.shape) - 1))
+    # error = np.mean(np.linalg.norm(predicted_poses - ground_truth_poses, dim=len(ground_truth_poses.shape) - 1))
     mpjpe = np.mean(error)
 
     return mpjpe
@@ -169,28 +169,35 @@ def p_mpjpe(predicted, target):
     return np.mean(np.linalg.norm(predicted_aligned - target, axis=len(target.shape) - 1))
 
 
-def calculate_models_joint_error():
-    model_location = os.path.join(config.fit3d_base_directory, "mlp_model", "keras_model_dir")
+def calculate_models_joint_error(x=None, y=None):
+    model_location = os.path.join(config.fit3d_base_directory, "mlp_model_custom_split", "keras_model_dir")
 
-    x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
-                             "train", 1)
-    predictions = []
+    if not x:
+        x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
+                                 "train", 0, testing_video_names)
 
-    for i, x_single in enumerate(x):
-        single_x = np.asarray(x_single)
-        single_x = preprocessing.normalize(single_x)
-        single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1])
+    # for debugging
+    # x_single = x[0]
+    # single_x = np.asarray(x_single)
+    # single_x = preprocessing.normalize(single_x)
+    # single_x = single_x.reshape(-1, single_x.shape[0], single_x.shape[1])
 
-        keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
-        predicted_pose = keras_model.predict(single_x)[0]
-        predictions.append(predicted_pose)
-        # if i == 9:
-        #     break
-    print(calculate_mpjpe(np.asarray(predictions), y))
+    keras_model = tf.keras.saving.load_model(model_location, custom_objects=None, compile=True, safe_mode=True)
+    predicted_poses = keras_model.predict(np.asarray(x))
+
+
+    print(predicted_poses.shape)
+    print(y.shape)
+
+
+    predictions = np.asarray(predicted_poses)
+    print(calculate_mpjpe(predictions, y))
+
+    print(p_mpjpe(predictions, y))
 
 
 def train():
-    debug_videos_count = 12
+    debug_videos_count = 0
 
     x, y = get_keypoint_data(config.training_sessions, config.training_cameras,
                              "train", debug_videos_count)
@@ -198,9 +205,15 @@ def train():
     for i, v in enumerate(x):
         x[i] = preprocessing.normalize(v)
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, shuffle=False)
+    # x_train, x_test, y_train, y_test = train_test_split(x, y, shuffle=False)
     # There is no joint3d_25 data inside of test!!!!!
     # x_test, y_test = get_keypoint_data(config.testing_sessions, config.testing_cameras, "test", debug_videos_count)
+
+    x_train, y_train = get_keypoint_data(config.training_sessions, config.training_cameras,
+                             "train", debug_videos_count, training_video_names)
+
+    x_test, y_test = get_keypoint_data(config.training_sessions, config.training_cameras,
+                             "train", debug_videos_count, testing_video_names)
 
     input_shape = x_train[0].shape
 
@@ -208,18 +221,30 @@ def train():
     training_loop(x_train, y_train, model)
     print("validating mlp")
     validate_model(x_test, y_test, model)
-    save_model(model, "mlp_model")
+    save_model(model, "mlp_model_custom_split")
 
     model = build_lstm(input_shape)
     training_loop(x_train, y_train, model)
     print("validating lstm")
     validate_model(x_test, y_test, model)
-    save_model(model, "mlp_model")
+    save_model(model, "lstm_model_custom_split")
+
 
 
 if __name__ == "__main__":
     # gpu_check()
     NUM_EPOCHS = 32
     BATCH_SIZE = 128
+
+    training_video_names = ['overhead_extension_thruster', 'overhead_trap_raises', 'pushup', 'side_lateral_raise', 'squat',
+     'standing_ab_twists', 'walk_the_box', 'warmup_1', 'warmup_10', 'warmup_11', 'warmup_12', 'warmup_13', 'warmup_14',
+     'warmup_15', 'warmup_16', 'warmup_17', 'warmup_18', 'warmup_19', 'warmup_2', 'warmup_3', 'warmup_4', 'warmup_5',
+     'warmup_6', 'warmup_7', 'warmup_8', 'warmup_9', 'w_raise', 'band_pull_apart', 'barbell_dead_row', 'barbell_row',
+     'barbell_shrug', 'burpees', 'clean_and_press', 'deadlift', 'diamond_pushup', 'drag_curl', 'dumbbell_biceps_curls',
+     'dumbbell_curl_trifecta']
+    testing_video_names = ['dumbbell_hammer_curls', 'dumbbell_high_pulls', 'dumbbell_overhead_shoulder_press',
+     'dumbbell_reverse_lunge', 'dumbbell_scaptions', 'man_maker', 'mule_kick', 'neutral_overhead_shoulder_press',
+     'one_arm_row']
+
     # train()
     calculate_models_joint_error()
